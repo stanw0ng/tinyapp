@@ -10,6 +10,12 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+/* // generates random string - random number is generated and converted to a string of base 36 representing all 
+alphanumerics characters and creates a new substring (skipping 0 and .) based off how many letters are required */
+function generateRandomString() {
+  return Math.random().toString(36).substring(2, 8);
+};
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
