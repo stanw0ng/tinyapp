@@ -29,6 +29,11 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+// generates json of urlDatabase
+app.post("/login", (req, res) => {
+  res.cookie('username', req.body.username).redirect('/urls');
+});
+
 // renders page with that displays urlDatabase
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
