@@ -55,7 +55,6 @@ app.post("/urls/:id/delete", (req, res) => { // adds delete verb to the :id
 
 // edits long URL and redirects back to index
 app.post("/urls/:id", (req, res) => { // adds delete verb to the :id
-  console.log(req.body);
   urlDatabase[req.params.id] = req.body.longURL;
   res.redirect(`/urls`);
 });
