@@ -24,42 +24,55 @@ app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
+// generates json of urlDatabase
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+// renders page with that displays urlDatabase
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
 
-//must go before /urls/:id
+// renders a page for creating new entires, must go BEFORE /urls/:id
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
+// creates 6 random alphanumeric id and generates new entry to urlDatabase
 app.post("/urls", (req, res) => {
   const uniqueID = generateRandomString();
   urlDatabase[uniqueID] = req.body.longURL;
   res.redirect(`/urls/${uniqueID}`);
 });
 
-//deleting entries and redirecting back to index
-app.post("/urls/:id/delete", (req, res) => {
+// deleting entries and redirecting back to index
+app.post("/urls/:id/delete", (req, res) => { // adds delete verb to the :id
   delete urlDatabase[req.params.id];
   res.redirect(`/urls`)
  });
 
+// edits long URL and redirects back to index
+ app.post("/urls/:id", (req, res) => { // adds delete verb to the :id
+  console.log(req.body)
+  urlDatabase[req.params.id] = req.body.longURL;
+  res.redirect(`/urls`)
+ });
+
+// renders page for each entry
 app.get("/urls/:id", (req, res) => {
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id]};
   res.render("urls_show", templateVars);
 });
 
+// redirects to longURL when clicking the uniqueID
 app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL); //because urls/:id makes a longURL key value pair
 });
 
+// initial test page
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
