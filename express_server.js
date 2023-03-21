@@ -10,9 +10,9 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-/* // generates random string - random number is generated and converted to a string of base 36 representing all 
+/* // generates random string - random number is generated and converted to a string of base 36 representing all
 alphanumerics characters and creates a new substring (skipping 0 and .) based off how many letters are required */
-function generateRandomString() {
+const generateRandomString = function() {
   return Math.random().toString(36).substring(2, 8);
 };
 
@@ -50,15 +50,15 @@ app.post("/urls", (req, res) => {
 // deleting entries and redirecting back to index
 app.post("/urls/:id/delete", (req, res) => { // adds delete verb to the :id
   delete urlDatabase[req.params.id];
-  res.redirect(`/urls`)
- });
+  res.redirect(`/urls`);
+});
 
 // edits long URL and redirects back to index
- app.post("/urls/:id", (req, res) => { // adds delete verb to the :id
-  console.log(req.body)
+app.post("/urls/:id", (req, res) => { // adds delete verb to the :id
+  console.log(req.body);
   urlDatabase[req.params.id] = req.body.longURL;
-  res.redirect(`/urls`)
- });
+  res.redirect(`/urls`);
+});
 
 // renders page for each entry
 app.get("/urls/:id", (req, res) => {
