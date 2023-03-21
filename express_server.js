@@ -40,6 +40,7 @@ app.get("/urls/new", (req, res) => {
 
 app.post("/urls", (req, res) => {
   const uniqueID = generateRandomString();
+  urlDatabase[uniqueID] = req.body.longURL;
   res.redirect(`/urls/${uniqueID}`);
 });
 
@@ -48,6 +49,10 @@ app.get("/urls/:id", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+app.get("/u/:id", (req, res) => {
+  const longURL = urlDatabase[req.params.id];
+  res.redirect(longURL); //because urls/:id makes a longURL key value pair
+});
 
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
