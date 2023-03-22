@@ -41,6 +41,11 @@ app.post("/logout", (req, res) => {
 });
 
 // renders page with that displays urlDatabase
+app.get("/register", (req, res) => {
+  res.render("registry");
+});
+
+// renders page with that displays urlDatabase
 app.get("/urls", (req, res) => {
   const templateVars = { 
     username: req.cookies["username"],
