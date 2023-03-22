@@ -4,7 +4,8 @@ const app = express();
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true })); // essential to parse body
+app.use(cookieParser()) // essential to parse cookie
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -35,9 +36,13 @@ app.post("/login", (req, res) => {
   res.cookie('username', req.body.username).redirect('/urls');
 });
 
+
 // renders page with that displays urlDatabase
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { 
+    username: req.cookies["username"],
+    urls: urlDatabase
+   };
   res.render("urls_index", templateVars);
 });
 
