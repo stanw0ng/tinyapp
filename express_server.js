@@ -67,14 +67,29 @@ app.get("/login", (req, res) => {
   res.render('login', templateVars);
 });
 
-// displays username in header upon clicking login
+// displays userID in header upon clicking login
 app.post("/login", (req, res) => {
-  res.cookie('user_id', req.body.userId).redirect('/urls');
+  //destructure req.body
+  const { email, password } = req.body;
+  
+  //checks if user exists
+  const user = findUserByEmail(email);
+
+  // if user exists AND the password is the SAME as the password of the user in the users OBJECT
+  if (user && user.password === password) {
+    // set cookie with user id to the specific user's id
+    res.cookie('user_id', user.id);
+    // redirect to /urls
+    return res.redirect('/urls');
+  }
+
+  // otherwise, wrong credentials
+  res.status(403).send('Sorry, wrong credentials. Please try again.');
 });
 
-// clears cookie and re-inserts input for username/login
+// clears cookie upon log out
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id').redirect('/urls')
+  res.clearCookie('user_id').redirect('/login')
 });
 
 // renders page with that displays urlDatabase
