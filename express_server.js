@@ -1,19 +1,18 @@
 const express = require("express");
-var cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true })); // essential to parse body
-app.use(cookieParser()) // essential to parse cookie
+app.use(cookieParser()); // essential to parse cookie
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
-/* // generates random string - random number is generated and converted to a string of base 36 representing all
-alphanumerics characters and creates a new substring (skipping 0 and .) based off how many letters are required */
+// generates random string for ID
 const generateRandomString = function() {
   return Math.random().toString(36).substring(2, 8);
 };
@@ -77,7 +76,11 @@ app.post("/urls/:id", (req, res) => { // adds delete verb to the :id
 
 // renders page for each entry
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"]};
+  const templateVars = { 
+    id: req.params.id,
+    longURL: urlDatabase[req.params.id],
+    username: req.cookies["username"]
+  };
   res.render("urls_show", templateVars);
 });
 
