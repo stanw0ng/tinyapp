@@ -56,9 +56,10 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 }); */
 
+/* // generates json of users, should have new registered entries if working
 app.get('/users.json', (req, res) => {
   res.json(users);
-});
+}); */
 
 // displays username in header upon clicking login
 app.post("/login", (req, res) => {
@@ -85,6 +86,11 @@ app.post("/register", (req, res) => {
   user = findUserByEmail(email);
   if (user) {
     res.status(403).send('Sorry, that user already exists!');
+    return;
+  }
+
+  if (email === '' || password === '') {
+    res.status(400).send('Please fill out all fields before submitting!');
     return;
   }
 
