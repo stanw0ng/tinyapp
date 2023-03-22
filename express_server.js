@@ -56,10 +56,16 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 }); */
 
-/* // generates json of users, should have new registered entries if working
+// generates json of users, should have new registered entries if working
 app.get('/users.json', (req, res) => {
   res.json(users);
-}); */
+});
+
+// renders login page
+app.get("/login", (req, res) => {
+  const templateVars = { userId: null }
+  res.render('login', templateVars);
+});
 
 // displays username in header upon clicking login
 app.post("/login", (req, res) => {
