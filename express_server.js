@@ -1,3 +1,4 @@
+// Setup
 const express = require("express");
 const cookieParser = require('cookie-parser');
 const app = express();
@@ -7,9 +8,24 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true })); // essential to parse body
 app.use(cookieParser()); // essential to parse cookie
 
+
+// Databases
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
+};
+
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
 };
 
 // generates random string for ID
@@ -17,38 +33,77 @@ const generateRandomString = function() {
   return Math.random().toString(36).substring(2, 8);
 };
 
-app.get("/", (req, res) => {
+// checks if user exists with email param, returns false otherise
+const findUserByEmail = (email) => {
+  for (let userId in users) {
+    if (email === users[userId].email) {
+      return users[userId];
+    }
+  }
+  return false;
+};
+
+/* app.get("/", (req, res) => {
   res.send("Hello!");
-});
+}); */
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
-// generates json of urlDatabase
+/* // generates json of urlDatabase
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
+}); */
+
+app.get('/users.json', (req, res) => {
+  res.json(users);
 });
 
 // displays username in header upon clicking login
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username).redirect('/urls');
+  res.cookie('user_id', req.body.userId).redirect('/urls');
 });
 
 // clears cookie and re-inserts input for username/login
 app.post("/logout", (req, res) => {
-  res.clearCookie('username').redirect('/urls')
+  res.clearCookie('user_id').redirect('/urls')
 });
 
 // renders page with that displays urlDatabase
 app.get("/register", (req, res) => {
-  res.render("registry");
+  const templateVars = { userId: req.cookies['user_id'] }
+  res.render("register", templateVars);
+});
+
+// renders page with that displays urlDatabase
+app.post("/register", (req, res) => {
+  // destructures email and password from req.body
+  const { email, password } = req.body
+
+  // verifies if user already exists, throws 403 if user is found
+  user = findUserByEmail(email);
+  if (user) {
+    res.status(403).send('Sorry, that user already exists!');
+    return;
+  }
+
+  // OTHERWISE, create a new user and add it to users
+  const userId = generateRandomString();
+  users[userId] = {
+    id: userId,
+    email: email,
+    password: password
+  }
+
+  // FINALLY, store userId in the cookies and redirect back to /urls
+  res.cookie('user_id', userId).redirect('/urls')
 });
 
 // renders page with that displays urlDatabase
 app.get("/urls", (req, res) => {
   const templateVars = { 
-    username: req.cookies["username"],
+    userId: req.cookies["user_id"],
     urls: urlDatabase
    };
   res.render("urls_index", templateVars);
@@ -56,7 +111,7 @@ app.get("/urls", (req, res) => {
 
 // renders a page for creating new entires, must go BEFORE /urls/:id
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const templateVars = { userId: req.cookies["user_id"] };
   res.render("urls_new", templateVars);
 });
 
@@ -84,7 +139,7 @@ app.get("/urls/:id", (req, res) => {
   const templateVars = { 
     id: req.params.id,
     longURL: urlDatabase[req.params.id],
-    username: req.cookies["username"]
+    userId: req.cookies["user_id"]
   };
   res.render("urls_show", templateVars);
 });
@@ -95,7 +150,7 @@ app.get("/u/:id", (req, res) => {
   res.redirect(longURL); //because urls/:id makes a longURL key value pair
 });
 
-// initial test page
+/* // initial test page
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
+}); */
