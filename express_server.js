@@ -31,11 +31,15 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-// generates json of urlDatabase
+// displays username in header upon clicking login
 app.post("/login", (req, res) => {
   res.cookie('username', req.body.username).redirect('/urls');
 });
 
+// clears cookie and re-inserts input for username/login
+app.post("/logout", (req, res) => {
+  res.clearCookie('username').redirect('/urls')
+});
 
 // renders page with that displays urlDatabase
 app.get("/urls", (req, res) => {
@@ -48,7 +52,8 @@ app.get("/urls", (req, res) => {
 
 // renders a page for creating new entires, must go BEFORE /urls/:id
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = { username: req.cookies["username"] };
+  res.render("urls_new", templateVars);
 });
 
 // creates 6 random alphanumeric id and generates new entry to urlDatabase
@@ -72,7 +77,7 @@ app.post("/urls/:id", (req, res) => { // adds delete verb to the :id
 
 // renders page for each entry
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id]};
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"]};
   res.render("urls_show", templateVars);
 });
 
