@@ -63,6 +63,10 @@ app.get('/users.json', (req, res) => {
 
 // renders login page
 app.get("/login", (req, res) => {
+  if (req.cookies["user_id"]) {
+    res.redirect("/urls");
+  }
+
   const templateVars = { userId: null }
   res.render('login', templateVars);
 });
@@ -80,7 +84,7 @@ app.post("/login", (req, res) => {
     // set cookie with user id to the specific user's id
     res.cookie('user_id', user.id);
     // redirect to /urls
-    return res.redirect('/urls');
+    res.redirect('/urls');
   }
 
   // otherwise, wrong credentials
@@ -94,6 +98,10 @@ app.post("/logout", (req, res) => {
 
 // renders page with that displays urlDatabase
 app.get("/register", (req, res) => {
+  if (req.cookies["user_id"]) {
+    res.redirect("/urls");
+  }
+
   const templateVars = { userId: req.cookies['user_id'] }
   res.render("register", templateVars);
 });
@@ -107,12 +115,10 @@ app.post("/register", (req, res) => {
   user = findUserByEmail(email);
   if (user) {
     res.status(403).send('Sorry, that user already exists!');
-    return;
   }
 
   if (email === '' || password === '') {
     res.status(400).send('Please fill out all fields before submitting!');
-    return;
   }
 
   // OTHERWISE, create a new user and add it to users
@@ -138,12 +144,22 @@ app.get("/urls", (req, res) => {
 
 // renders a page for creating new entires, must go BEFORE /urls/:id
 app.get("/urls/new", (req, res) => {
-  const templateVars = { userId: req.cookies["user_id"] };
+  const userId = req.cookies["user_id"];
+  
+  if (!userId) {
+    res.redirect("/login");
+  }
+  
+  const templateVars = { userId };
   res.render("urls_new", templateVars);
 });
 
 // creates 6 random alphanumeric id and generates new entry to urlDatabase
 app.post("/urls", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    res.status(401).send('Sorry, not logged into Tinyapp!'); // this would only show up through something like cURL
+  }
+
   const uniqueID = generateRandomString();
   urlDatabase[uniqueID] = req.body.longURL;
   res.redirect(`/urls/${uniqueID}`);
@@ -163,15 +179,21 @@ app.post("/urls/:id", (req, res) => { // adds delete verb to the :id
 
 // renders page for each entry
 app.get("/urls/:id", (req, res) => {
+  const id = req.params.id;
+
+  if (!urlDatabase[id]) {
+    res.status(404).send('Shortened URL not found!');
+  }
+
   const templateVars = { 
-    id: req.params.id,
-    longURL: urlDatabase[req.params.id],
+    id: id,
+    longURL: urlDatabase[id],
     userId: req.cookies["user_id"]
   };
   res.render("urls_show", templateVars);
 });
 
-// redirects to longURL when clicking the uniqueID
+// redirects to longURL when clicking the uniqueID in individual page
 app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL); //because urls/:id makes a longURL key value pair
