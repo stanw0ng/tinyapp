@@ -51,10 +51,10 @@ app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
-/* // generates json of urlDatabase
+// generates json of urlDatabase
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
-}); */
+});
 
 // generates json of users, should have new registered entries if working
 app.get('/users.json', (req, res) => {
@@ -154,15 +154,19 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars);
 });
 
-// creates 6 random alphanumeric id and generates new entry to urlDatabase
+// creates new url entries and redirects to individual pages after
 app.post("/urls", (req, res) => {
   if (!req.cookies["user_id"]) {
     res.status(401).send('Sorry, not logged into Tinyapp!'); // this would only show up through something like cURL
   }
 
-  const uniqueID = generateRandomString();
-  urlDatabase[uniqueID] = req.body.longURL;
-  res.redirect(`/urls/${uniqueID}`);
+  const userId = req.cookies["user_id"];
+  const uniqueId = generateRandomString();
+  urlDatabase[uniqueId] = {
+    longURL: req.body.longURL,
+    userId: userId
+  };
+  res.redirect(`/urls/${uniqueId}`);
 });
 
 // deleting entries and redirecting back to index
