@@ -30,10 +30,10 @@
           </tr>
         </thead>
         <tbody>
-          <% for (let id in urls) { %>
+          <% for (let id in urlDb) { %>
             <tr>
               <td><%= id %></td>
-              <td><%= urls[id].longURL %></td>
+              <td><%= urlDb[id].longURL %></td>
               <td>
                 <button class="btn btn-info" onclick="window.location.href='/urls/<%= id %>'">Edit</button>
               </td>

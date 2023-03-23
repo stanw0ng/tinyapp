@@ -137,7 +137,7 @@ app.post("/register", (req, res) => {
 app.get("/urls", (req, res) => {
   const templateVars = { 
     userId: req.cookies["user_id"],
-    urls: urlDatabase
+    urlDb: urlDatabase
    };
   res.render("urls_index", templateVars);
 });
@@ -162,6 +162,7 @@ app.post("/urls", (req, res) => {
 
   const userId = req.cookies["user_id"];
   const uniqueId = generateRandomString();
+  console.log(req.body)
   urlDatabase[uniqueId] = {
     longURL: req.body.longURL,
     userId: userId
@@ -191,7 +192,7 @@ app.get("/urls/:id", (req, res) => {
 
   const templateVars = { 
     id: id,
-    longURL: urlDatabase[id],
+    longURL: urlDatabase[id].longURL,
     userId: req.cookies["user_id"]
   };
   res.render("urls_show", templateVars);
@@ -199,7 +200,7 @@ app.get("/urls/:id", (req, res) => {
 
 // redirects to longURL when clicking the uniqueID in individual page
 app.get("/u/:id", (req, res) => {
-  const longURL = urlDatabase[req.params.id];
+  const longURL = urlDatabase[req.params.id].longURL;
   res.redirect(longURL); //because urls/:id makes a longURL key value pair
 });
 
