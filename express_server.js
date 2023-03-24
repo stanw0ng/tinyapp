@@ -1,6 +1,7 @@
 // Setup
 const express = require("express");
 const cookieParser = require('cookie-parser');
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -25,7 +26,7 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur",
+    password: bcrypt.hashSync("purple-monkey-dinosaur",10),
   },
   user2RandomID: {
     id: "user2RandomID",
@@ -97,7 +98,7 @@ app.post("/login", (req, res) => {
   const user = findUserByEmail(email);
 
   // if user exists AND the password is the SAME as the password of the user in the users OBJECT
-  if (user && user.password === password) {
+  if (user && bcrypt.compareSync(user.password, password)) {
     // set cookie with user id to the specific user's id
     res.cookie('user_id', user.id);
     // redirect to /urls
@@ -144,7 +145,7 @@ app.post("/register", (req, res) => {
   users[userId] = {
     id: userId,
     email: email,
-    password: password
+    password: bcrypt.hashSync(password, 10)
   }
 
   // FINALLY, store userId in the cookies and redirect back to /urls
