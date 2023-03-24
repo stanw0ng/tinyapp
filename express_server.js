@@ -1,13 +1,19 @@
 // Setup
 const express = require("express");
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true })); // essential to parse body
-app.use(cookieParser()); // essential to parse cookie
+// cookieSession setup
+app.use(cookieSession({
+  name: 'session',
+  keys: ['I', 'love', 'cookies'],
+
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 
 
 // Databases
@@ -81,7 +87,7 @@ app.get('/users.json', (req, res) => {
 
 // renders login page
 app.get("/login", (req, res) => {
-  if (req.cookies["user_id"]) {
+  if (req.session.user_id) {
     res.redirect("/urls");
   }
 
@@ -100,7 +106,7 @@ app.post("/login", (req, res) => {
   // if user exists AND the password is the SAME as the password of the user in the users OBJECT
   if (user && bcrypt.compareSync(user.password, password)) {
     // set cookie with user id to the specific user's id
-    res.cookie('user_id', user.id);
+    req.session.user_id = user.id;;
     // redirect to /urls
     res.redirect('/urls');
   }
@@ -111,17 +117,17 @@ app.post("/login", (req, res) => {
 
 // clears cookie upon log out
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id').redirect('/login');
-  console.log(urlDatabase);
+  req.session = null;
+  res.redirect('/login');
 });
 
 // renders page with that displays urlDatabase
 app.get("/register", (req, res) => {
-  if (req.cookies["user_id"]) {
+  if (req.session.user_id) {
     res.redirect("/urls");
   }
 
-  const templateVars = { userId: req.cookies['user_id'] }
+  const templateVars = { userId: req.session.user_id }
   res.render("register", templateVars);
 });
 
@@ -149,18 +155,19 @@ app.post("/register", (req, res) => {
   }
 
   // FINALLY, store userId in the cookies and redirect back to /urls
-  res.cookie('user_id', userId).redirect('/urls')
+  req.session.user_id = userId;
+  res.redirect('/urls')
 });
 
 // renders page with that displays urlDatabase
 app.get("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
 
-  const myUrls = urlsForUser(req.cookies["user_id"]);
+  const myUrls = urlsForUser(req.session.user_id);
   const templateVars = { 
-    userId: req.cookies["user_id"],
+    userId: req.session.user_id,
     urlDb: myUrls
    };
   res.render("urls_index", templateVars);
@@ -168,12 +175,12 @@ app.get("/urls", (req, res) => {
 
 // creates new url entries and redirects to individual pages after
 app.post("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.status(401).send('Unauthorized: Sorry, your are not logged into Tinyapp!'); // this would only show up through something like cURL
   }
 
   // updated urlDatabase structure
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const uniqueId = generateRandomString();
 
   urlDatabase[uniqueId] = {
@@ -185,7 +192,7 @@ app.post("/urls", (req, res) => {
 
 // renders a page for creating new entires, must go BEFORE /urls/:id
 app.get("/urls/new", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   
   if (!userId) {
     res.redirect("/login");
@@ -199,7 +206,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
   
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
   
@@ -207,14 +214,14 @@ app.get("/urls/:id", (req, res) => {
     res.status(404).send('Not Found: Shortened URL not found!');
   }
   
-  if (urlDatabase[id].userId !== req.cookies["user_id"]) {
+  if (urlDatabase[id].userId !== req.session.user_id) {
     res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
   }
   
   const templateVars = { 
     id: id,
     longUrl: urlDatabase[id].longUrl,
-    userId: req.cookies["user_id"]
+    userId: req.session.user_id
   };
   
   res.render("urls_show", templateVars);
@@ -222,18 +229,18 @@ app.get("/urls/:id", (req, res) => {
 
 // edits long URL and redirects back to index
 app.post("/urls/:id", (req, res) => {
-  const myUrls = urlsForUser(req.cookies["user_id"])
+  const myUrls = urlsForUser(req.session.user_id)
   const id = req.params.id;
   
   if (!myUrls[req.params.id]) {
     res.status(404).send('Not Found: URL ID not found!')
   }
 
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
 
-  if (urlDatabase[id].userId !== req.cookies["user_id"]) {
+  if (urlDatabase[id].userId !== req.session.user_id) {
     res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
   }
   
@@ -248,11 +255,11 @@ app.post("/urls/:id/delete", (req, res) => {
     res.status(404).send('Not Found: URL ID not found!')
   }
 
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.status(401).send('Unauthorized: Can not delete, you are not logged into Tinyapp!');
   }
   
-  if (urlDatabase[req.params.id].userId !== req.cookies["user_id"]) {
+  if (urlDatabase[req.params.id].userId !== req.session.user_id) {
     res.status(403).send('Forbidden: Can not delete, this URL was not created by you!'); // should work if you pass a cookie in curl mimicking cookie
   }
 
