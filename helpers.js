@@ -10,7 +10,7 @@ const findUserByEmail = (email, database) => {
       return database[id];
     }
   }
-  return null;
+  return;
 };
 
 // returns object with url objects based on userId
