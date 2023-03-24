@@ -11,8 +11,14 @@ app.use(cookieParser()); // essential to parse cookie
 
 // Databases
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  'b2xVn2': {
+    longUrl: "http://www.lighthouselabs.ca",
+    userId: "default"
+  },
+  '9sm5xK': {
+    longUrl: "http://www.google.com",
+    userId: "default"
+  },
 };
 
 const users = {
@@ -41,6 +47,17 @@ const findUserByEmail = (email) => {
     }
   }
   return false;
+};
+
+// 
+const urlsForUser = (id) => {
+  const myUrls = {}
+  for (let dbId in urlDatabase) {
+    if (id === urlDatabase[dbId].userId) {
+      myUrls[dbId] = urlDatabase[dbId];
+    }
+  }
+  return myUrls;
 };
 
 /* app.get("/", (req, res) => {
@@ -88,12 +105,13 @@ app.post("/login", (req, res) => {
   }
 
   // otherwise, wrong credentials
-  res.status(403).send('Sorry, wrong credentials. Please try again.');
+  res.status(403).send('Forbidden: You entered the wrong credentials. Please try again.');
 });
 
 // clears cookie upon log out
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id').redirect('/login')
+  res.clearCookie('user_id').redirect('/login');
+  console.log(urlDatabase);
 });
 
 // renders page with that displays urlDatabase
@@ -112,13 +130,13 @@ app.post("/register", (req, res) => {
   const { email, password } = req.body
 
   // verifies if user already exists, throws 403 if user is found
-  user = findUserByEmail(email);
+  const user = findUserByEmail(email);
   if (user) {
-    res.status(403).send('Sorry, that user already exists!');
+    res.status(403).send('Forbidden: Sorry, that user already exists!');
   }
 
   if (email === '' || password === '') {
-    res.status(400).send('Please fill out all fields before submitting!');
+    res.status(400).send('Bad Request: Please fill out all fields before submitting!');
   }
 
   // OTHERWISE, create a new user and add it to users
@@ -135,11 +153,33 @@ app.post("/register", (req, res) => {
 
 // renders page with that displays urlDatabase
 app.get("/urls", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
+  }
+
+  const myUrls = urlsForUser(req.cookies["user_id"]);
   const templateVars = { 
     userId: req.cookies["user_id"],
-    urlDb: urlDatabase
+    urlDb: myUrls
    };
   res.render("urls_index", templateVars);
+});  
+
+// creates new url entries and redirects to individual pages after
+app.post("/urls", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    res.status(401).send('Unauthorized: Sorry, your are not logged into Tinyapp!'); // this would only show up through something like cURL
+  }
+
+  // updated urlDatabase structure
+  const userId = req.cookies["user_id"];
+  const uniqueId = generateRandomString();
+
+  urlDatabase[uniqueId] = {
+    longUrl: req.body.longUrl,
+    userId: userId
+  };
+  res.redirect(`/urls/${uniqueId}`);
 });
 
 // renders a page for creating new entires, must go BEFORE /urls/:id
@@ -148,60 +188,81 @@ app.get("/urls/new", (req, res) => {
   
   if (!userId) {
     res.redirect("/login");
-  }
+  }  
   
   const templateVars = { userId };
   res.render("urls_new", templateVars);
-});
-
-// creates new url entries and redirects to individual pages after
-app.post("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) {
-    res.status(401).send('Sorry, not logged into Tinyapp!'); // this would only show up through something like cURL
-  }
-
-  const userId = req.cookies["user_id"];
-  const uniqueId = generateRandomString();
-  console.log(req.body)
-  urlDatabase[uniqueId] = {
-    longURL: req.body.longURL,
-    userId: userId
-  };
-  res.redirect(`/urls/${uniqueId}`);
-});
-
-// deleting entries and redirecting back to index
-app.post("/urls/:id/delete", (req, res) => { // adds delete verb to the :id
-  delete urlDatabase[req.params.id];
-  res.redirect(`/urls`);
-});
-
-// edits long URL and redirects back to index
-app.post("/urls/:id", (req, res) => { // adds delete verb to the :id
-  urlDatabase[req.params.id] = req.body.longURL;
-  res.redirect(`/urls`);
-});
+});  
 
 // renders page for each entry
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
-
-  if (!urlDatabase[id]) {
-    res.status(404).send('Shortened URL not found!');
+  
+  if (!req.cookies["user_id"]) {
+    res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
-
+  
+  if (!urlDatabase[id]) {
+    res.status(404).send('Not Found: Shortened URL not found!');
+  }
+  
+  if (urlDatabase[id].userId !== req.cookies["user_id"]) {
+    res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
+  }
+  
   const templateVars = { 
     id: id,
-    longURL: urlDatabase[id].longURL,
+    longUrl: urlDatabase[id].longUrl,
     userId: req.cookies["user_id"]
   };
+  
   res.render("urls_show", templateVars);
 });
 
-// redirects to longURL when clicking the uniqueID in individual page
+// edits long URL and redirects back to index
+app.post("/urls/:id", (req, res) => {
+  const myUrls = urlsForUser(req.cookies["user_id"])
+  const id = req.params.id;
+  
+  if (!myUrls[req.params.id]) {
+    res.status(404).send('Not Found: URL ID not found!')
+  }
+
+  if (!req.cookies["user_id"]) {
+    res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
+  }
+
+  if (urlDatabase[id].userId !== req.cookies["user_id"]) {
+    res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
+  }
+  
+  urlDatabase[req.params.id].longUrl = req.body.longUrl;
+  res.redirect(`/urls`);
+});
+
+// deleting entries and redirecting back to index
+app.post("/urls/:id/delete", (req, res) => {
+
+  if (!urlDatabase[req.params.id]) {
+    res.status(404).send('Not Found: URL ID not found!')
+  }
+
+  if (!req.cookies["user_id"]) {
+    res.status(401).send('Unauthorized: Can not delete, you are not logged into Tinyapp!');
+  }
+  
+  if (urlDatabase[req.params.id].userId !== req.cookies["user_id"]) {
+    res.status(403).send('Forbidden: Can not delete, this URL was not created by you!'); // should work if you pass a cookie in curl mimicking cookie
+  }
+
+  delete urlDatabase[req.params.id];
+  res.redirect(`/urls`);
+});
+
+// redirects to longUrl when clicking the uniqueID in individual page
 app.get("/u/:id", (req, res) => {
-  const longURL = urlDatabase[req.params.id].longURL;
-  res.redirect(longURL); //because urls/:id makes a longURL key value pair
+  const longUrl = urlDatabase[req.params.id].longUrl;
+  res.redirect(longUrl);
 });
 
 /* // initial test page
