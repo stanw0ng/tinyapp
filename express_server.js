@@ -1,6 +1,6 @@
-const {  generateRandomString, findUserByEmail, urlsForUser } = require('./helpers');
 
 // Setup
+const {  generateRandomString, findUserByEmail, urlsForUser } = require('./helpers');
 const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
@@ -9,7 +9,6 @@ const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true })); // essential to parse body
-// cookieSession setup
 app.use(cookieSession({
   name: 'session',
   keys: ['I', 'love', 'cookies'],
@@ -43,9 +42,9 @@ const users = {
   },
 };
 
-/* app.get("/", (req, res) => {
+app.get("/", (req, res) => {
   res.send("Hello!");
-}); */
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
@@ -56,7 +55,7 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-// generates json of users, should have new registered entries if working
+// generates json of users
 app.get('/users.json', (req, res) => {
   res.json(users);
 });
@@ -67,7 +66,7 @@ app.get("/login", (req, res) => {
     res.redirect("/urls");
   }
 
-  const templateVars = { userId: null }
+  const templateVars = { userId: null };
   res.render('login', templateVars);
 });
 
@@ -82,7 +81,7 @@ app.post("/login", (req, res) => {
   // if user exists AND the input password is the SAME as the hashed password of the user in the users OBJECT
   if (user && bcrypt.compareSync(password, user.password)) {
     // set cookie with user id to the specific user's id
-    req.session.user_id = user.id;;
+    req.session.user_id = user.id;
     // redirect to /urls
     res.redirect('/urls');
   }
@@ -103,14 +102,14 @@ app.get("/register", (req, res) => {
     res.redirect("/urls");
   }
 
-  const templateVars = { userId: req.session.user_id }
+  const templateVars = { userId: req.session.user_id };
   res.render("register", templateVars);
 });
 
 // renders page with that displays urlDatabase
 app.post("/register", (req, res) => {
   // destructures email and password from req.body
-  const { email, password } = req.body
+  const { email, password } = req.body;
 
   // verifies if user already exists, throws 403 if user is found
   const user = findUserByEmail(email, users);
@@ -128,11 +127,11 @@ app.post("/register", (req, res) => {
     id: userId,
     email: email,
     password: bcrypt.hashSync(password, 10)
-  }
+  };
 
   // FINALLY, store userId in the cookies and redirect back to /urls
   req.session.user_id = userId;
-  res.redirect('/urls')
+  res.redirect('/urls');
 });
 
 // renders page with that displays urlDatabase
@@ -142,12 +141,12 @@ app.get("/urls", (req, res) => {
   }
 
   const myUrls = urlsForUser(req.session.user_id, urlDatabase);
-  const templateVars = { 
+  const templateVars = {
     userId: req.session.user_id,
     urlDb: myUrls
-   };
+  };
   res.render("urls_index", templateVars);
-});  
+});
 
 // creates new url entries and redirects to individual pages after
 app.post("/urls", (req, res) => {
@@ -172,11 +171,11 @@ app.get("/urls/new", (req, res) => {
   
   if (!userId) {
     res.redirect("/login");
-  }  
+  }
   
   const templateVars = { userId };
   res.render("urls_new", templateVars);
-});  
+});
 
 // renders page for each entry
 app.get("/urls/:id", (req, res) => {
@@ -194,7 +193,7 @@ app.get("/urls/:id", (req, res) => {
     res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
   }
   
-  const templateVars = { 
+  const templateVars = {
     id: id,
     longUrl: urlDatabase[id].longUrl,
     userId: req.session.user_id
@@ -205,11 +204,11 @@ app.get("/urls/:id", (req, res) => {
 
 // edits long URL and redirects back to index
 app.post("/urls/:id", (req, res) => {
-  const myUrls = urlsForUser(req.session.user_id, urlDatabase)
+  const myUrls = urlsForUser(req.session.user_id, urlDatabase);
   const id = req.params.id;
   
   if (!myUrls[req.params.id]) {
-    res.status(404).send('Not Found: URL ID not found!')
+    res.status(404).send('Not Found: URL ID not found!');
   }
 
   if (!req.session.user_id) {
@@ -228,7 +227,7 @@ app.post("/urls/:id", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
 
   if (!urlDatabase[req.params.id]) {
-    res.status(404).send('Not Found: URL ID not found!')
+    res.status(404).send('Not Found: URL ID not found!');
   }
 
   if (!req.session.user_id) {
@@ -249,7 +248,7 @@ app.get("/u/:id", (req, res) => {
   res.redirect(longUrl);
 });
 
-/* // initial test page
+// initial test page
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
-}); */
+});
