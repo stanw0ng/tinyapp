@@ -1,6 +1,5 @@
-
 // Setup
-const {  generateRandomString, findUserByEmail, urlsForUser } = require('./helpers');
+const { generateRandomString, findUserByEmail, urlsForUser } = require('./helpers');
 const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
@@ -15,7 +14,6 @@ app.use(cookieSession({
 
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
-
 
 // Databases
 const urlDatabase = {
@@ -33,21 +31,24 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: bcrypt.hashSync("purple-monkey-dinosaur",10),
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10),
   },
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk",
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10),
   },
 };
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  if (req.session.user_id) {
+    return res.redirect('/urls');
+  }
+  res.redirect('/login');
 });
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  console.log(`Tinyapp listening on port ${PORT}!`);
 });
 
 // generates json of urlDatabase
@@ -72,21 +73,19 @@ app.get("/login", (req, res) => {
 
 // displays userID in header upon clicking login
 app.post("/login", (req, res) => {
-  //destructure req.body
   const { email, password } = req.body;
-  
-  //checks if user exists
+
   const user = findUserByEmail(email, users);
 
-  // if user exists AND the input password is the SAME as the hashed password of the user in the users OBJECT
   if (user && bcrypt.compareSync(password, user.password)) {
-    // set cookie with user id to the specific user's id
-    req.session.user_id = user.id;
-    // redirect to /urls
+    req.session['user_id'] = user.id;
     res.redirect('/urls');
   }
 
-  // otherwise, wrong credentials
+  if (!user) {
+    res.status(404).send('Not Found: User not found, are you a registered user?');
+  }
+
   res.status(403).send('Forbidden: You entered the wrong credentials. Please try again.');
 });
 
@@ -108,11 +107,9 @@ app.get("/register", (req, res) => {
 
 // renders page with that displays urlDatabase
 app.post("/register", (req, res) => {
-  // destructures email and password from req.body
   const { email, password } = req.body;
-
-  // verifies if user already exists, throws 403 if user is found
   const user = findUserByEmail(email, users);
+
   if (user) {
     res.status(403).send('Forbidden: Sorry, that user already exists!');
   }
@@ -121,7 +118,7 @@ app.post("/register", (req, res) => {
     res.status(400).send('Bad Request: Please fill out all fields before submitting!');
   }
 
-  // OTHERWISE, create a new user and add it to users
+  // creates new user
   const userId = generateRandomString();
   users[userId] = {
     id: userId,
@@ -129,8 +126,7 @@ app.post("/register", (req, res) => {
     password: bcrypt.hashSync(password, 10)
   };
 
-  // FINALLY, store userId in the cookies and redirect back to /urls
-  req.session.user_id = userId;
+  req.session['user_id'] = userId;
   res.redirect('/urls');
 });
 
@@ -145,34 +141,36 @@ app.get("/urls", (req, res) => {
     userId: req.session.user_id,
     urlDb: myUrls
   };
+
   res.render("urls_index", templateVars);
 });
 
 // creates new url entries and redirects to individual pages after
 app.post("/urls", (req, res) => {
-  if (!req.session.user_id) {
+  const userId = req.session.user_id;
+
+  if (!userId) {
     res.status(401).send('Unauthorized: Sorry, your are not logged into Tinyapp!'); // this would only show up through something like cURL
   }
 
-  // updated urlDatabase structure
-  const userId = req.session.user_id;
+  // creates new url entry
   const uniqueId = generateRandomString();
-
   urlDatabase[uniqueId] = {
     longUrl: req.body.longUrl,
     userId: userId
   };
+
   res.redirect(`/urls/${uniqueId}`);
 });
 
 // renders a page for creating new entires, must go BEFORE /urls/:id
 app.get("/urls/new", (req, res) => {
   const userId = req.session.user_id;
-  
+
   if (!userId) {
     res.redirect("/login");
   }
-  
+
   const templateVars = { userId };
   res.render("urls_new", templateVars);
 });
@@ -180,25 +178,25 @@ app.get("/urls/new", (req, res) => {
 // renders page for each entry
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
-  
+
   if (!req.session.user_id) {
     res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
-  
+
   if (!urlDatabase[id]) {
     res.status(404).send('Not Found: Shortened URL not found!');
   }
-  
+
   if (urlDatabase[id].userId !== req.session.user_id) {
     res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
   }
-  
+
   const templateVars = {
     id: id,
     longUrl: urlDatabase[id].longUrl,
     userId: req.session.user_id
   };
-  
+
   res.render("urls_show", templateVars);
 });
 
@@ -206,7 +204,7 @@ app.get("/urls/:id", (req, res) => {
 app.post("/urls/:id", (req, res) => {
   const myUrls = urlsForUser(req.session.user_id, urlDatabase);
   const id = req.params.id;
-  
+
   if (!myUrls[req.params.id]) {
     res.status(404).send('Not Found: URL ID not found!');
   }
@@ -218,7 +216,7 @@ app.post("/urls/:id", (req, res) => {
   if (urlDatabase[id].userId !== req.session.user_id) {
     res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
   }
-  
+
   urlDatabase[req.params.id].longUrl = req.body.longUrl;
   res.redirect(`/urls`);
 });
@@ -233,7 +231,7 @@ app.post("/urls/:id/delete", (req, res) => {
   if (!req.session.user_id) {
     res.status(401).send('Unauthorized: Can not delete, you are not logged into Tinyapp!');
   }
-  
+
   if (urlDatabase[req.params.id].userId !== req.session.user_id) {
     res.status(403).send('Forbidden: Can not delete, this URL was not created by you!'); // should work if you pass a cookie in curl mimicking cookie
   }
@@ -246,9 +244,4 @@ app.post("/urls/:id/delete", (req, res) => {
 app.get("/u/:id", (req, res) => {
   const longUrl = urlDatabase[req.params.id].longUrl;
   res.redirect(longUrl);
-});
-
-// initial test page
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
