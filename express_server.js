@@ -1,4 +1,4 @@
-// Setup
+// SETUP
 const { generateRandomString, findUserByEmail, urlsForUser } = require('./helpers');
 const express = require("express");
 const cookieSession = require('cookie-session');
@@ -15,7 +15,17 @@ app.use(cookieSession({
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
 
-// Databases
+// middleware to check login status, works but not in use as it conflicts with some of the response codes required by the project
+/* app.use((req, res, next) => {
+  const allowList = ['/', '/login', '/logout', '/register']
+  if (!req.session['user_id'] && !allowList.includes(req.url)) {
+    res.status(404).send('Not Found: User not found, are you a registered user?')
+  }
+
+  return next();
+}); */
+
+// DATA
 const urlDatabase = {
   'b2xVn2': {
     longUrl: "http://www.lighthouselabs.ca",
@@ -40,6 +50,11 @@ const users = {
   },
 };
 
+// ROUTES
+app.listen(PORT, () => {
+  console.log(`Tinyapp listening on port ${PORT}!`);
+});
+
 app.get("/", (req, res) => {
   if (req.session.user_id) {
     return res.redirect('/urls');
@@ -47,16 +62,12 @@ app.get("/", (req, res) => {
   res.redirect('/login');
 });
 
-app.listen(PORT, () => {
-  console.log(`Tinyapp listening on port ${PORT}!`);
-});
-
-// generates json of urlDatabase
+// generates json of urlDatabase -- for tesing only
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-// generates json of users
+// generates json of users -- for tesing only
 app.get('/users.json', (req, res) => {
   res.json(users);
 });
