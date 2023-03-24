@@ -1,3 +1,5 @@
+const {  generateRandomString, findUserByEmail, urlsForUser } = require('./helpers');
+
 // Setup
 const express = require("express");
 const cookieSession = require('cookie-session');
@@ -41,32 +43,6 @@ const users = {
   },
 };
 
-// generates random string for ID
-const generateRandomString = function() {
-  return Math.random().toString(36).substring(2, 8);
-};
-
-// checks if user exists with email param, returns false otherise
-const findUserByEmail = (email) => {
-  for (let userId in users) {
-    if (email === users[userId].email) {
-      return users[userId];
-    }
-  }
-  return false;
-};
-
-// 
-const urlsForUser = (id) => {
-  const myUrls = {}
-  for (let dbId in urlDatabase) {
-    if (id === urlDatabase[dbId].userId) {
-      myUrls[dbId] = urlDatabase[dbId];
-    }
-  }
-  return myUrls;
-};
-
 /* app.get("/", (req, res) => {
   res.send("Hello!");
 }); */
@@ -101,10 +77,10 @@ app.post("/login", (req, res) => {
   const { email, password } = req.body;
   
   //checks if user exists
-  const user = findUserByEmail(email);
+  const user = findUserByEmail(email, users);
 
-  // if user exists AND the password is the SAME as the password of the user in the users OBJECT
-  if (user && bcrypt.compareSync(user.password, password)) {
+  // if user exists AND the input password is the SAME as the hashed password of the user in the users OBJECT
+  if (user && bcrypt.compareSync(password, user.password)) {
     // set cookie with user id to the specific user's id
     req.session.user_id = user.id;;
     // redirect to /urls
@@ -137,7 +113,7 @@ app.post("/register", (req, res) => {
   const { email, password } = req.body
 
   // verifies if user already exists, throws 403 if user is found
-  const user = findUserByEmail(email);
+  const user = findUserByEmail(email, users);
   if (user) {
     res.status(403).send('Forbidden: Sorry, that user already exists!');
   }
@@ -165,7 +141,7 @@ app.get("/urls", (req, res) => {
     res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
 
-  const myUrls = urlsForUser(req.session.user_id);
+  const myUrls = urlsForUser(req.session.user_id, urlDatabase);
   const templateVars = { 
     userId: req.session.user_id,
     urlDb: myUrls
@@ -229,7 +205,7 @@ app.get("/urls/:id", (req, res) => {
 
 // edits long URL and redirects back to index
 app.post("/urls/:id", (req, res) => {
-  const myUrls = urlsForUser(req.session.user_id)
+  const myUrls = urlsForUser(req.session.user_id, urlDatabase)
   const id = req.params.id;
   
   if (!myUrls[req.params.id]) {
