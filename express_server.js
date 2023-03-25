@@ -4,10 +4,10 @@ const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const app = express();
-const PORT = 8080; // default port 8080
+const PORT = 8080;
 
 app.set("view engine", "ejs");
-app.use(express.urlencoded({ extended: true })); // essential to parse body
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieSession({
   name: 'session',
   keys: ['I', 'love', 'cookies'],
@@ -16,6 +16,7 @@ app.use(cookieSession({
 }));
 
 // middleware to check login status, works but not in use as it conflicts with some of the response codes required by the project
+
 /* app.use((req, res, next) => {
   const allowList = ['/', '/login', '/logout', '/register']
   if (!req.session['user_id'] && !allowList.includes(req.url)) {
@@ -112,7 +113,7 @@ app.get("/register", (req, res) => {
     res.redirect("/urls");
   }
 
-  const templateVars = { userId: req.session.user_id };
+  const templateVars = { userId: null };
   res.render("register", templateVars);
 });
 
@@ -143,6 +144,8 @@ app.post("/register", (req, res) => {
 
 // renders page with that displays urlDatabase
 app.get("/urls", (req, res) => {
+  const user = users[req.session.user_id];
+  const email = user ? user.email : null;
   if (!req.session.user_id) {
     res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
@@ -150,7 +153,8 @@ app.get("/urls", (req, res) => {
   const myUrls = urlsForUser(req.session.user_id, urlDatabase);
   const templateVars = {
     userId: req.session.user_id,
-    urlDb: myUrls
+    urlDb: myUrls,
+    email
   };
 
   res.render("urls_index", templateVars);
@@ -177,18 +181,22 @@ app.post("/urls", (req, res) => {
 // renders a page for creating new entires, must go BEFORE /urls/:id
 app.get("/urls/new", (req, res) => {
   const userId = req.session.user_id;
+  const user = users[userId];
+  const email = user ? user.email : null;
 
   if (!userId) {
     res.redirect("/login");
   }
 
-  const templateVars = { userId };
+  const templateVars = { userId, email };
   res.render("urls_new", templateVars);
 });
 
 // renders page for each entry
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
+  const user = users[req.session.user_id];
+  const email = user ? user.email : null;
 
   if (!req.session.user_id) {
     res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
@@ -205,7 +213,8 @@ app.get("/urls/:id", (req, res) => {
   const templateVars = {
     id: id,
     longUrl: urlDatabase[id].longUrl,
-    userId: req.session.user_id
+    userId: req.session.user_id,
+    email: email
   };
 
   res.render("urls_show", templateVars);
@@ -215,8 +224,9 @@ app.get("/urls/:id", (req, res) => {
 app.post("/urls/:id", (req, res) => {
   const myUrls = urlsForUser(req.session.user_id, urlDatabase);
   const id = req.params.id;
+  const longUrl = urlDatabase[id].longUrl
 
-  if (!myUrls[req.params.id]) {
+  if (!longUrl) {
     res.status(404).send('Not Found: URL ID not found!');
   }
 
@@ -230,6 +240,17 @@ app.post("/urls/:id", (req, res) => {
 
   urlDatabase[req.params.id].longUrl = req.body.longUrl;
   res.redirect(`/urls`);
+});
+
+// redirects to longUrl when clicking the uniqueID in individual page
+app.get("/u/:id", (req, res) => {
+  const longUrl = urlDatabase[req.params.id].longUrl;
+  
+  if ( !longUrl || longUrl === undefined ) {
+    res.status(404).send('Not Found: URL ID not found!');
+  }
+
+  res.redirect(longUrl);
 });
 
 // deleting entries and redirecting back to index
@@ -249,10 +270,4 @@ app.post("/urls/:id/delete", (req, res) => {
 
   delete urlDatabase[req.params.id];
   res.redirect(`/urls`);
-});
-
-// redirects to longUrl when clicking the uniqueID in individual page
-app.get("/u/:id", (req, res) => {
-  const longUrl = urlDatabase[req.params.id].longUrl;
-  res.redirect(longUrl);
 });
