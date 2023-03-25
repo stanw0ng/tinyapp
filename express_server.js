@@ -1,5 +1,5 @@
 // SETUP
-const { generateRandomString, findUserByEmail, urlsForUser } = require('./helpers');
+const { generateRandomString, findUserByEmail, urlsForUser, isValidUrl } = require('./helpers');
 const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
@@ -14,17 +14,6 @@ app.use(cookieSession({
 
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
-
-// middleware to check login status, works but not in use as it conflicts with some of the response codes required by the project
-
-/* app.use((req, res, next) => {
-  const allowList = ['/', '/login', '/logout', '/register']
-  if (!req.session['user_id'] && !allowList.includes(req.url)) {
-    res.status(404).send('Not Found: User not found, are you a registered user?')
-  }
-
-  return next();
-}); */
 
 // DATA
 const urlDatabase = {
@@ -222,9 +211,8 @@ app.get("/urls/:id", (req, res) => {
 
 // edits long URL and redirects back to index
 app.post("/urls/:id", (req, res) => {
-  const myUrls = urlsForUser(req.session.user_id, urlDatabase);
   const id = req.params.id;
-  const longUrl = urlDatabase[id].longUrl
+  const longUrl = urlDatabase[id].longUrl;
 
   if (!longUrl) {
     res.status(404).send('Not Found: URL ID not found!');
@@ -244,10 +232,16 @@ app.post("/urls/:id", (req, res) => {
 
 // redirects to longUrl when clicking the uniqueID in individual page
 app.get("/u/:id", (req, res) => {
-  const longUrl = urlDatabase[req.params.id].longUrl;
-  
-  if ( !longUrl || longUrl === undefined ) {
+  const urlEntry = urlDatabase[req.params.id];
+  const longUrl = urlEntry.longUrl;
+
+  if (!urlEntry || !longUrl) {
     res.status(404).send('Not Found: URL ID not found!');
+  }
+
+  if (!isValidUrl(longUrl)) {
+    res.status(400).send('Bad Request: Invalid URL!');
+    return;
   }
 
   res.redirect(longUrl);

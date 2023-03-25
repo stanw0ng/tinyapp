@@ -24,8 +24,19 @@ const urlsForUser = (id, database) => {
   return myUrls;
 };
 
+// validates if URL entry is a working link
+const isValidUrl = function (url) {
+  try {
+    new URL(url);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
 module.exports = {
   generateRandomString,
   findUserByEmail,
   urlsForUser,
+  isValidUrl
 }
