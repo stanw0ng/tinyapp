@@ -28,7 +28,7 @@
           <% for (let id in urlDb) { %>
             <tr>
               <td style="vertical-align: middle;">
-                <%= id %>
+                <a href="/u/<%= id %>"><%= id %></a>
               </td>
               <td style="vertical-align: middle;">
                 <%= urlDb[id].longUrl %>

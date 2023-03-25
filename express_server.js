@@ -236,7 +236,7 @@ app.get("/u/:id", (req, res) => {
   const longUrl = urlEntry.longUrl;
 
   if (!urlEntry || !longUrl) {
-    res.status(404).send('Not Found: URL ID not found!');
+    res.status(404).send('Not Found: URL is undefined!');
   }
 
   if (!isValidUrl(longUrl)) {
