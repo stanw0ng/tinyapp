@@ -10,7 +10,7 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieSession({
   name: 'session',
-  keys: ['I', 'love', 'cookies'],
+  keys: ['No cookies for you'],
 
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
