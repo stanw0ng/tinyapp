@@ -84,10 +84,10 @@ app.post("/login", (req, res) => {
   }
 
   if (!user) {
-    res.status(404).send('Not Found: User not found, are you a registered user?');
+    return res.status(404).send('Not Found: User not found, are you a registered user?');
   }
 
-  res.status(403).send('Forbidden: You entered the wrong credentials. Please try again.');
+  return res.status(403).send('Forbidden: You entered the wrong credentials. Please try again.');
 });
 
 // clears cookie upon log out
@@ -112,11 +112,11 @@ app.post("/register", (req, res) => {
   const user = findUserByEmail(email, users);
 
   if (user) {
-    res.status(403).send('Forbidden: Sorry, that user already exists!');
+    return res.status(403).send('Forbidden: Sorry, that user already exists!');
   }
 
   if (email === '' || password === '') {
-    res.status(400).send('Bad Request: Please fill out all fields before submitting!');
+    return res.status(400).send('Bad Request: Please fill out all fields before submitting!');
   }
 
   // creates new user
@@ -136,7 +136,7 @@ app.get("/urls", (req, res) => {
   const user = users[req.session.user_id];
   const email = user ? user.email : null;
   if (!req.session.user_id) {
-    res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
+    return res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
 
   const myUrls = urlsForUser(req.session.user_id, urlDatabase);
@@ -154,7 +154,7 @@ app.post("/urls", (req, res) => {
   const userId = req.session.user_id;
 
   if (!userId) {
-    res.status(401).send('Unauthorized: Sorry, your are not logged into Tinyapp!'); // this would only show up through something like cURL
+    res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!'); // this would only show up through something like cURL
   }
 
   // creates new url entry
@@ -188,15 +188,15 @@ app.get("/urls/:id", (req, res) => {
   const email = user ? user.email : null;
 
   if (!req.session.user_id) {
-    res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
+    return res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
 
   if (!urlDatabase[id]) {
-    res.status(404).send('Not Found: Shortened URL not found!');
+    return  res.status(404).send('Not Found: Shortened URL not found!');
   }
 
   if (urlDatabase[id].userId !== req.session.user_id) {
-    res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
+    return res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
   }
 
   const templateVars = {
@@ -212,18 +212,18 @@ app.get("/urls/:id", (req, res) => {
 // edits long URL and redirects back to index
 app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
-  const longUrl = urlDatabase[id].longUrl;
+  const urlEntry = urlDatabase[id];
 
-  if (!longUrl) {
-    res.status(404).send('Not Found: URL ID not found!');
+  if (!urlEntry) {
+    return res.status(404).send('Not Found: URL ID not found!');
   }
 
   if (!req.session.user_id) {
-    res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
+    return res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
 
   if (urlDatabase[id].userId !== req.session.user_id) {
-    res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
+    return res.status(403).send('Forbidden: Sorry, this URL was not created by you!');
   }
 
   urlDatabase[req.params.id].longUrl = req.body.longUrl;
@@ -236,12 +236,11 @@ app.get("/u/:id", (req, res) => {
   const longUrl = urlEntry.longUrl;
 
   if (!urlEntry || !longUrl) {
-    res.status(404).send('Not Found: URL is undefined!');
+    return res.status(404).send('Not Found: URL is undefined!');
   }
 
   if (!isValidUrl(longUrl)) {
-    res.status(400).send('Bad Request: Invalid URL!');
-    return;
+    return res.status(400).send('Bad Request: Invalid URL!');
   }
 
   res.redirect(longUrl);
@@ -251,15 +250,15 @@ app.get("/u/:id", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
 
   if (!urlDatabase[req.params.id]) {
-    res.status(404).send('Not Found: URL ID not found!');
+    return res.status(404).send('Not Found: URL ID not found!');
   }
 
   if (!req.session.user_id) {
-    res.status(401).send('Unauthorized: Can not delete, you are not logged into Tinyapp!');
+    return res.status(401).send('Unauthorized: Can not delete, you are not logged into Tinyapp!');
   }
 
   if (urlDatabase[req.params.id].userId !== req.session.user_id) {
-    res.status(403).send('Forbidden: Can not delete, this URL was not created by you!'); // should work if you pass a cookie in curl mimicking cookie
+    return res.status(403).send('Forbidden: Can not delete, this URL was not created by you!'); // should work if you pass a cookie in curl mimicking cookie
   }
 
   delete urlDatabase[req.params.id];
