@@ -47,19 +47,10 @@ app.listen(PORT, () => {
 
 app.get("/", (req, res) => {
   if (req.session.user_id) {
-    return res.redirect('/urls');
+    res.redirect('/urls');
   }
+
   res.redirect('/login');
-});
-
-// generates json of urlDatabase -- for tesing only
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-
-// generates json of users -- for tesing only
-app.get('/users.json', (req, res) => {
-  res.json(users);
 });
 
 // renders login page
@@ -75,12 +66,11 @@ app.get("/login", (req, res) => {
 // displays userID in header upon clicking login
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-
   const user = findUserByEmail(email, users);
 
   if (user && bcrypt.compareSync(password, user.password)) {
     req.session['user_id'] = user.id;
-    res.redirect('/urls');
+    return res.redirect('/urls'); // return is necessary here to prevent terminal error msg
   }
 
   if (!user) {
@@ -135,11 +125,12 @@ app.post("/register", (req, res) => {
 app.get("/urls", (req, res) => {
   const user = users[req.session.user_id];
   const email = user ? user.email : null;
+  const myUrls = urlsForUser(req.session.user_id, urlDatabase);
+  
   if (!req.session.user_id) {
     return res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!');
   }
 
-  const myUrls = urlsForUser(req.session.user_id, urlDatabase);
   const templateVars = {
     userId: req.session.user_id,
     urlDb: myUrls,
@@ -154,7 +145,7 @@ app.post("/urls", (req, res) => {
   const userId = req.session.user_id;
 
   if (!userId) {
-    res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!'); // this would only show up through something like cURL
+    return res.status(401).send('Unauthorized: Sorry, you are not logged into Tinyapp!'); // this would only show up through something like cURL
   }
 
   // creates new url entry
@@ -215,7 +206,7 @@ app.post("/urls/:id", (req, res) => {
   const urlEntry = urlDatabase[id];
 
   if (!urlEntry) {
-    return res.status(404).send('Not Found: URL ID not found!');
+    return res.status(404).send('Not Found: URL ID not found!');// seen in terminal using cURL
   }
 
   if (!req.session.user_id) {
@@ -258,7 +249,7 @@ app.post("/urls/:id/delete", (req, res) => {
   }
 
   if (urlDatabase[req.params.id].userId !== req.session.user_id) {
-    return res.status(403).send('Forbidden: Can not delete, this URL was not created by you!'); // should work if you pass a cookie in curl mimicking cookie
+    return res.status(403).send('Forbidden: Can not delete, this URL was not created by you!'); // can be seen in terminal using cURL and passing a cookie (this also wont work if cookies are encrypted)
   }
 
   delete urlDatabase[req.params.id];
